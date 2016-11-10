@@ -47,6 +47,7 @@ let activeWindow = null;
 let awCallbackID = 0;
 let logFile = null;
 let logFileStream;
+let presence;
 
 function logData() {
   const win = global.display.focus_window;
@@ -54,15 +55,16 @@ function logData() {
 
   writeData({
     date: (new Date).toISOString(),
+    origin: 'window',
     type: win.get_wm_class(),
     title: win.get_title()
   });
 }
 
 const writeData = throttle(function _writeData(data) {
-  log(data);
+  log(JSON.stringify(data));
   logFileStream.write(JSON.stringify(data) + "\n", null);
-}, 200, {trailing: false});
+}, 80, {trailing: false});
 
 function onWindowChange() {
   const win = global.display.focus_window;
@@ -78,11 +80,21 @@ function onWindowChange() {
   }
 }
 
+function onPresenceChange() {
+  writeData({
+    date: (new Date).toISOString(),
+    origin: 'presence',
+    status: ['available', 'invisible', 'busy', 'idle'][presence.status],
+  });
+}
+
 function init() {}
 
 function enable() {
   logFile = Gio.File.new_for_path(filePath);
   logFileStream = logFile.append_to(Gio.FileCreateFlags.NONE, null);
+  presence = GnomeSession.Presence();
+  presence.connectSignal('StatusChanged', onPresenceChange);
   focusCallbackID = global.display.connect('notify::focus-window', onWindowChange);
 }
 
