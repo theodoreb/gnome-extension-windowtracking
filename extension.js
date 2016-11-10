@@ -53,6 +53,11 @@ function onPresenceChange() {
     origin: 'presence',
     status: ['idle', 'invisible', 'busy', 'available'][presence.status],
   });
+  if (focusCallbackID) {
+    global.display.disconnect(focusCallbackID);
+  }
+  focusCallbackID = global.display.connect('notify::focus-window', onWindowChange);
+  logData();
 }
 
 function init() {
