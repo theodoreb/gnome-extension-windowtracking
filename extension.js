@@ -81,10 +81,13 @@ function onWindowChange() {
 }
 
 function onPresenceChange() {
+  logFile = Gio.File.new_for_path(filePath);
+  logFileStream = logFile.append_to(Gio.FileCreateFlags.NONE, null);
+
   writeData({
     date: (new Date).toISOString(),
     origin: 'presence',
-    status: ['available', 'invisible', 'busy', 'idle'][presence.status],
+    status: ['idle', 'invisible', 'busy', 'available'][presence.status],
   });
 }
 
