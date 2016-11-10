@@ -1,53 +1,93 @@
+/**
+ * @file
+ */
+'use strict';
 
-const St = imports.gi.St;
-const Main = imports.ui.main;
-const Tweener = imports.ui.tweener;
+const GnomeSession = imports.misc.gnomeSession;
+const Gio = imports.gi.Gio;
+const GLib = imports.gi.GLib;
+const filePath = GLib.get_user_data_dir() + '/.windowtracking.log';
 
-let text, button;
 
-function _hideHello() {
-    Main.uiGroup.remove_actor(text);
-    text = null;
-}
-
-function _showHello() {
-    if (!text) {
-        text = new St.Label({ style_class: 'helloworld-label', text: "Hello, world!" });
-        Main.uiGroup.add_actor(text);
+const throttle = function(func, wait, options) {
+  var context, args, result;
+  var timeout = null;
+  var previous = 0;
+  if (!options) options = {};
+  var later = function() {
+    previous = options.leading === false ? 0 : Date.now();
+    timeout = null;
+    result = func.apply(context, args);
+    if (!timeout) context = args = null;
+  };
+  return function() {
+    var now = Date.now();
+    if (!previous && options.leading === false) previous = now;
+    var remaining = wait - (now - previous);
+    context = this;
+    args = arguments;
+    if (remaining <= 0 || remaining > wait) {
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
+      previous = now;
+      result = func.apply(context, args);
+      if (!timeout) context = args = null;
+    } else if (!timeout && options.trailing !== false) {
+      timeout = setTimeout(later, remaining);
     }
+    return result;
+  };
+};
 
-    text.opacity = 255;
 
-    let monitor = Main.layoutManager.primaryMonitor;
+let focusCallbackID = 0;
+let activeWindow = null;
+let awCallbackID = 0;
+let logFile = null;
+let logFileStream;
 
-    text.set_position(monitor.x + Math.floor(monitor.width / 2 - text.width / 2),
-                      monitor.y + Math.floor(monitor.height / 2 - text.height / 2));
+function logData() {
+  const win = global.display.focus_window;
+  if (!win) { return; }
 
-    Tweener.addTween(text,
-                     { opacity: 0,
-                       time: 2,
-                       transition: 'easeOutQuad',
-                       onComplete: _hideHello });
+  writeData({
+    date: (new Date).toISOString(),
+    type: win.get_wm_class(),
+    title: win.get_title()
+  });
 }
 
-function init() {
-    button = new St.Bin({ style_class: 'panel-button',
-                          reactive: true,
-                          can_focus: true,
-                          x_fill: true,
-                          y_fill: false,
-                          track_hover: true });
-    let icon = new St.Icon({ icon_name: 'system-run-symbolic',
-                             style_class: 'system-status-icon' });
+const writeData = throttle(function _writeData(data) {
+  log(data);
+  logFileStream.write(JSON.stringify(data) + "\n", null);
+}, 200, {trailing: false});
 
-    button.set_child(icon);
-    button.connect('button-press-event', _showHello);
+function onWindowChange() {
+  const win = global.display.focus_window;
+  if (activeWindow) {
+    activeWindow.disconnect(awCallbackID);
+  }
+  if (win) {
+     if(win !== activeWindow) {
+       activeWindow = win;
+       awCallbackID = win.connect('notify::title', logData);
+     }
+    logData();
+  }
 }
+
+function init() {}
 
 function enable() {
-    Main.panel._rightBox.insert_child_at_index(button, 0);
+  logFile = Gio.File.new_for_path(filePath);
+  logFileStream = logFile.append_to(Gio.FileCreateFlags.NONE, null);
+  focusCallbackID = global.display.connect('notify::focus-window', onWindowChange);
 }
 
 function disable() {
-    Main.panel._rightBox.remove_child(button);
+  global.display.disconnect(focusCallbackID);
+  logFileStream.close();
+  focusCallbackID = 0;
 }
