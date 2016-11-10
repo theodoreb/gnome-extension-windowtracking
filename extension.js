@@ -56,8 +56,10 @@ function onPresenceChange() {
   if (focusCallbackID) {
     global.display.disconnect(focusCallbackID);
   }
+  if (presence.status === 3) {
+    logData();
+  }
   focusCallbackID = global.display.connect('notify::focus-window', onWindowChange);
-  logData();
 }
 
 function init() {
