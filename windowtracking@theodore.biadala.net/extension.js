@@ -49,8 +49,14 @@ const logData = (function (Gda, config) {
     data.date = time.toISOString();
     data.timezone = time.toString().match(/\(([\w]{3,4})\)/)[1] || 'CET';
     if (lastTime) {
+      let diff = time - lastTime;
+      // Bail out if the event is less than 50ms, it's either a glitch or
+      // a mistake, this'll be counted towards the next event.
+      if (diff <= 50) {
+        return;
+      }
       // Store duration as seconds.
-      data.duration = (time - lastTime) / 1000;
+      data.duration = (diff / 1000).toFixed(3);
     }
     const sanitizedData = sanitize(data);
     const builtData = buildData(sanitizedData);
