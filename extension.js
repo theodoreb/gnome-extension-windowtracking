@@ -104,6 +104,7 @@ const logData = (function (Gda, config) {
         ')'].join('\n'));
       connection.execute_non_select_command('CREATE INDEX date_timezone ON log(date, timezone)');
       connection.execute_non_select_command('CREATE INDEX type_key_origin ON log(type, key, origin)');
+      connection.execute_non_select_command('CREATE INDEX key_value ON log(key,value)');
       connection.execute_non_select_command('CREATE INDEX duration ON log(duration)');
     }
   }
@@ -128,7 +129,7 @@ const tracking = (function (global, GnomeSession, log) {
 
   let titleCallbackID = 0;
 
-  let presenceCallbackID = 0;
+  //let presenceCallbackID = 0;
 
   function init() {
     presence = GnomeSession.Presence();
@@ -136,7 +137,8 @@ const tracking = (function (global, GnomeSession, log) {
   }
 
   function enable() {
-    presenceCallbackID = presence.connect('notify::status', changeStatus);
+    //presenceCallbackID = presence.connect('notify::status', changeStatus);
+    presence.connectSignal('StatusChanged', changeStatus);
     windowCallbackID = display.connect('notify::focus-window', changeWindow);
   }
 
@@ -147,16 +149,16 @@ const tracking = (function (global, GnomeSession, log) {
     titleCallbackID = 0;
 
     display.disconnect(windowCallbackID);
-    presence.disconnect(presenceCallbackID);
+    //presence.disconnect(presenceCallbackID);
     windowCallbackID = 0;
-    presenceCallbackID = 0;
+    //presenceCallbackID = 0;
   }
 
   function changeStatus() {
     log({
       type: 'presence',
       key: 'status',
-      value: ['idle', 'invisible', 'busy', 'available'][presence.status],
+      value: ['available', 'invisible', 'busy', 'idle'][presence.status],
     });
 
     // Log the window when going out of idle state.
