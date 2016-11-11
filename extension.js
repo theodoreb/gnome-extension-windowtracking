@@ -10,8 +10,8 @@ const config = {
 };
 
 
-function sanitize(data) {
-
+function sanitize(rawData) {
+  let data = rawData;
   if (data.type === 'window') {
     data.key = sanitizeWindowKey(data.key, data.value);
   }
@@ -19,17 +19,18 @@ function sanitize(data) {
   return data;
 }
 
-function sanitizeWindowKey(applicationKey, applicationTitle) {
-  let appKey = applicationKey;
+function sanitizeWindowKey(application, title) {
+  let app = application;
 
-  if (/jetbrains-php/i.test(appKey)) {
-    appKey = 'jetbrains-phpstorm';
-  }
-  if (appKey === 'Main.py' && /Guake/i.test(applicationTitle)) {
-    appKey = 'guake';
+  if (/jetbrains-php/i.test(app)) {
+    app = 'jetbrains-phpstorm';
   }
 
-  return appKey;
+  if (app === 'Main.py' && /Guake/i.test(title)) {
+    app = 'Guake';
+  }
+
+  return app;
 }
 
 // Custom code
@@ -52,9 +53,9 @@ const logData = (function (Gda, config) {
       // Store duration as seconds.
       data.duration = (time - lastTime) / 1000;
     }
-    const builtData = buildData(data);
-    const sanitizedData = sanitize(builtData);
-    write.apply(this, sanitizedData);
+    const sanitizedData = sanitize(data);
+    const builtData = buildData(sanitizedData);
+    write.apply(this, builtData);
     lastTime = time;
   }
 
