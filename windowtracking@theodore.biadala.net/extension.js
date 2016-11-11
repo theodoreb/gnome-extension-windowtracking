@@ -7,6 +7,8 @@
 const config = {
   dbName: '.windowtraking.sqlite',
   dbDir: imports.gi.GLib.get_home_dir(),
+  // Ignore events faster than 'threshold' ms.
+  threshold: 125,
 };
 
 
@@ -52,7 +54,7 @@ const logData = (function (Gda, config) {
       let diff = time - lastTime;
       // Bail out if the event is less than 50ms, it's either a glitch or
       // a mistake, this'll be counted towards the next event.
-      if (diff <= 50) {
+      if (diff <= config.threshold) {
         return;
       }
       // Store duration as seconds.
