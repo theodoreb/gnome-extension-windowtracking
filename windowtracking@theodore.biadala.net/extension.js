@@ -41,9 +41,8 @@ const logData = (function (Gda, config) {
   let connection = null;
 
   function log(rawData) {
-    if (!connection) {
-      connect();
-    }
+    connect();
+
     // This is not a copy but it should be!
     const data = rawData;
     const time = new Date();
@@ -76,7 +75,7 @@ const logData = (function (Gda, config) {
   }
 
   function connect() {
-    if (!connection) {
+    if (!connection || connection && !connection.is_active()) {
       connection = new Gda.Connection({
         provider: Gda.Config.get_provider('SQLite'),
         cnc_string: 'DB_DIR=' + config.dbDir + ';DB_NAME=' + config.dbName
@@ -174,13 +173,13 @@ const tracking = (function (global, GnomeSession, log) {
   }
 
   function changeWindow() {
+    changeTitle();
     if (activeWindow && titleCallbackID) {
       activeWindow.disconnect(titleCallbackID);
     }
     activeWindow = display.focus_window;
     if (activeWindow) {
       titleCallbackID = activeWindow.connect('notify::title', changeTitle);
-      changeTitle();
     }
   }
 
