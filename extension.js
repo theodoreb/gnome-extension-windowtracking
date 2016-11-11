@@ -9,6 +9,29 @@ const config = {
   dbDir: imports.gi.GLib.get_home_dir(),
 };
 
+
+function sanitize(data) {
+
+  if (data.type === 'window') {
+    data.key = sanitizeWindowKey(data.key, data.value);
+  }
+
+  return data;
+}
+
+function sanitizeWindowKey(applicationKey, applicationTitle) {
+  let appKey = applicationKey;
+
+  if (/jetbrains-php/i.test(appKey)) {
+    appKey = 'jetbrains-phpstorm';
+  }
+  if (appKey === 'Main.py' && /Guake/i.test(applicationTitle)) {
+    appKey = 'guake';
+  }
+
+  return appKey;
+}
+
 // Custom code
 const logData = (function (Gda, config) {
 
@@ -29,7 +52,9 @@ const logData = (function (Gda, config) {
       // Store duration as seconds.
       data.duration = (time - lastTime) / 1000;
     }
-    write.apply(this, buildData(data));
+    const builtData = buildData(data);
+    const sanitizedData = sanitize(builtData);
+    write.apply(this, sanitizedData);
     lastTime = time;
   }
 
