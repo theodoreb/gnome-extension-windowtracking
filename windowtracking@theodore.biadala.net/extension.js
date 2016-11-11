@@ -40,7 +40,7 @@ const logData = (function (Gda, config) {
 
   let connection = null;
 
-  function log(rawData) {
+  function logData(rawData) {
     connect();
 
     // This is not a copy but it should be!
@@ -57,6 +57,10 @@ const logData = (function (Gda, config) {
     write.apply(this, builtData);
     lastTime = time;
   }
+
+  logData.init = function () {
+    connect();
+  };
 
   function buildData(rawData) {
     const keys = ['date', 'timezone', 'type', 'key', 'value', 'duration', 'origin'];
@@ -75,37 +79,45 @@ const logData = (function (Gda, config) {
   }
 
   function connect() {
-    if (!connection || connection && !connection.is_active()) {
+    if (!connection) {
+      log('[windowTraking]: Connecting to DB.');
       connection = new Gda.Connection({
         provider: Gda.Config.get_provider('SQLite'),
         cnc_string: 'DB_DIR=' + config.dbDir + ';DB_NAME=' + config.dbName
       });
       connection.open();
-      initializeDb();
+      if (!checkDb()) {
+        initializeDb();
+      }
     }
   }
 
-
-  function initializeDb() {
+  function checkDb() {
     try {
-      connection.execute_select_command('SELECT id FROM log LIMIT 1');
+      connection.execute_select_command('SELECT id FROM log WHERE id = 1');
     }
     catch (e) {
-      connection.execute_non_select_command(['CREATE TABLE log (',
-        'id INTEGER PRIMARY KEY,',
-        'date TEXT NOT NULL,',
-        'timezone TEXT NOT NULL,',
-        'type TEXT NOT NULL,',
-        'key TEXT NOT NULL,',
-        'value TEXT NOT NULL,',
-        'duration INTEGER NULL,',
-        'origin TEXT NOT NULL',
-        ')'].join('\n'));
-      connection.execute_non_select_command('CREATE INDEX date_timezone ON log(date, timezone)');
-      connection.execute_non_select_command('CREATE INDEX type_key_origin ON log(type, key, origin)');
-      connection.execute_non_select_command('CREATE INDEX key_value ON log(key,value)');
-      connection.execute_non_select_command('CREATE INDEX duration ON log(duration)');
+      return false;
     }
+    return true;
+  }
+
+  function initializeDb() {
+    log('[windowTracking]: Creating database');
+    connection.execute_non_select_command(['CREATE TABLE log (',
+      'id INTEGER PRIMARY KEY,',
+      'date TEXT NOT NULL,',
+      'timezone TEXT NOT NULL,',
+      'type TEXT NOT NULL,',
+      'key TEXT NOT NULL,',
+      'value TEXT NOT NULL,',
+      'duration INTEGER NULL,',
+      'origin TEXT NOT NULL',
+      ')'].join('\n'));
+    connection.execute_non_select_command('CREATE INDEX date_timezone ON log(date, timezone)');
+    connection.execute_non_select_command('CREATE INDEX type_key_origin ON log(type, key, origin)');
+    connection.execute_non_select_command('CREATE INDEX key_value ON log(key,value)');
+    connection.execute_non_select_command('CREATE INDEX duration ON log(duration)');
   }
 
   function disconnect() {
@@ -113,7 +125,7 @@ const logData = (function (Gda, config) {
     connection = null;
   }
 
-  return log;
+  return logData;
 }(imports.gi.Gda, config));
 
 const tracking = (function (global, GnomeSession, log) {
@@ -131,6 +143,7 @@ const tracking = (function (global, GnomeSession, log) {
   //let presenceCallbackID = 0;
 
   function init() {
+    log.init();
     presence = GnomeSession.Presence();
     display = global.display;
   }
@@ -203,13 +216,16 @@ const tracking = (function (global, GnomeSession, log) {
 
 
 function init() {
+  log('[windowTraking]: initialized.');
   tracking.init();
 }
 
 function enable() {
+  log('[windowTraking]: enabled.');
   tracking.enable();
 }
 
 function disable() {
+  log('[windowTraking]: disabled.');
   tracking.disable();
 }
