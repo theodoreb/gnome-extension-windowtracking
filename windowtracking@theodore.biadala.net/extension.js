@@ -84,7 +84,7 @@ const logData = (function (Gda, config) {
 
   let connection = null;
 
-  let logData = debounce(function _logData(rawData) {
+  let logData = function _logData(rawData) {
     connect();
 
     // This is not a copy but it should be!
@@ -94,6 +94,9 @@ const logData = (function (Gda, config) {
     data.timezone = time.toString().match(/\(([\w]{3,4})\)/)[1] || 'CET';
     if (lastTime) {
       let diff = time - lastTime;
+      if (diff < config.threshold) {
+        return;
+      }
       // Store duration as seconds.
       data.duration = (diff / 1000).toFixed(3);
     }
@@ -101,7 +104,7 @@ const logData = (function (Gda, config) {
     const builtData = buildData(sanitizedData);
     write.apply(this, builtData);
     lastTime = time;
-  }, config.threshold, true);
+  }
 
   logData.init = function () {
     connect();
