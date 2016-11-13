@@ -23,8 +23,7 @@ function sanitize(rawData) {
 
 function sanitizeWindowTitle(application, title) {
 
-
-  return encode_utf8(title);
+  return title;
 }
 
 function sanitizeWindowKey(application, title) {
@@ -38,15 +37,7 @@ function sanitizeWindowKey(application, title) {
     app = 'Guake';
   }
 
-  return encode_utf8(app);
-}
-
-function encode_utf8(s) {
-  return unescape(encodeURIComponent(s));
-}
-
-function decode_utf8(s) {
-  return decodeURIComponent(escape(s));
+  return app;
 }
 
 // Custom code
@@ -101,7 +92,7 @@ const logData = (function (Gda, config) {
   }
 
   function write(keys, values) {
-    connection.execute_non_select_command('INSERT INTO log (' + keys.join(',') + ') VALUES ("' + values.join('","') + '");');
+    connection.insert_row_into_table_v('log', keys, values);
   }
 
   function connect() {
