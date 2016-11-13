@@ -8,9 +8,51 @@ const config = {
   dbName: '.windowtraking.sqlite',
   dbDir: imports.gi.GLib.get_home_dir(),
   // Ignore events faster than 'threshold' ms.
-  threshold: 125,
+  threshold: 200,
 };
 
+const Mainloop = imports.mainloop;
+
+
+function debounce(func, wait, immediate) {
+  var timeout, args, context, timestamp, result;
+
+  var later = function() {
+    var last = Date.now() - timestamp;
+
+    if (last < wait && last >= 0) {
+      timeout = Mainloop.timeout_add(wait - last, later);
+    } else {
+      timeout = null;
+      if (!immediate) {
+        result = func.apply(context, args);
+        if (!timeout) context = args = null;
+      }
+    }
+    return false;
+  };
+
+  return function() {
+    context = this;
+    args = arguments;
+    timestamp = Date.now();
+    var callNow = immediate && !timeout;
+    if (!timeout) timeout = Mainloop.timeout_add(wait, later);
+    if (callNow) {
+      result = func.apply(context, args);
+      context = args = null;
+    }
+
+    return result;
+  };
+}
+
+
+/*
+const Convenience = imports.misc.extensionUtils.getCurrentExtension().imports.convenience;
+let settings = Convenience.getSettings();
+const Mainloop = imports.mainloop;
+*/
 
 function sanitize(rawData) {
   let data = rawData;
@@ -42,7 +84,7 @@ const logData = (function (Gda, config) {
 
   let connection = null;
 
-  function logData(rawData) {
+  let logData = debounce(function _logData(rawData) {
     connect();
 
     // This is not a copy but it should be!
@@ -52,11 +94,6 @@ const logData = (function (Gda, config) {
     data.timezone = time.toString().match(/\(([\w]{3,4})\)/)[1] || 'CET';
     if (lastTime) {
       let diff = time - lastTime;
-      // Bail out if the event is less than 50ms, it's either a glitch or
-      // a mistake, this'll be counted towards the next event.
-      if (diff <= config.threshold) {
-        return;
-      }
       // Store duration as seconds.
       data.duration = (diff / 1000).toFixed(3);
     }
@@ -64,7 +101,7 @@ const logData = (function (Gda, config) {
     const builtData = buildData(sanitizedData);
     write.apply(this, builtData);
     lastTime = time;
-  }
+  }, config.threshold, true);
 
   logData.init = function () {
     connect();
