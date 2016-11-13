@@ -75,28 +75,38 @@ const logData = (function (Gda, config) {
 
   let lastTime = null;
 
+  let lastData = null;
+
   let connection = null;
+
+
+  function equals(a, b) {
+    return a.type === b.type && a.key === b.key && a.value === b.value;
+  }
 
   function logData(rawData) {
     connect();
 
-    // This is not a copy but it should be!
-    const data = rawData;
     const time = new Date();
-    data.date = time.toISOString();
-    data.timezone = time.toString().match(/\(([\w]{3,4})\)/)[1] || 'CET';
-    if (lastTime) {
+    const newData = sanitize(rawData);
+
+    // Don't log the same thing twice.
+    if (lastData && equals(lastData, newData)) { return; }
+    newData.date = time.toISOString();
+    newData.timezone = time.toString().match(/\(([\w]{3,4})\)/)[1] || 'CET';
+
+    if (lastData) {
       let diff = time - lastTime;
+      // Bail out if it's too fast, we'll get the offset on the previous event.
       if (diff < config.threshold) {
         return;
       }
       // Store duration as seconds.
-      data.duration = (diff / 1000).toFixed(3);
+      lastData.duration = (diff / 1000).toFixed(3);
+      write.apply(this, buildData(lastData));
     }
-    const sanitizedData = sanitize(data);
-    const builtData = buildData(sanitizedData);
-    write.apply(this, builtData);
     lastTime = time;
+    lastData = newData;
   }
 
   function buildData(rawData) {
