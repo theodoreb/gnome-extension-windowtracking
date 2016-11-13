@@ -11,49 +11,20 @@ const config = {
   threshold: 125,
 };
 
-const Mainloop = imports.mainloop;
-
-
-function debounce(func, wait, immediate) {
-  var timeout, args, context, timestamp, result;
-
-  var later = function() {
-    var last = Date.now() - timestamp;
-
-    if (last < wait && last >= 0) {
-      timeout = Mainloop.timeout_add(wait - last, later);
-    } else {
-      timeout = null;
-      if (!immediate) {
-        result = func.apply(context, args);
-        if (!timeout) context = args = null;
-      }
-    }
-    return false;
-  };
-
-  return function() {
-    context = this;
-    args = arguments;
-    timestamp = Date.now();
-    var callNow = immediate && !timeout;
-    if (!timeout) timeout = Mainloop.timeout_add(wait, later);
-    if (callNow) {
-      result = func.apply(context, args);
-      context = args = null;
-    }
-
-    return result;
-  };
-}
-
 function sanitize(rawData) {
   let data = rawData;
   if (data.type === 'window') {
     data.key = sanitizeWindowKey(data.key, data.value);
+    data.value = sanitizeWindowTitle(data.key, data.value);
   }
 
   return data;
+}
+
+function sanitizeWindowTitle(application, title) {
+
+
+  return encode_utf8(title);
 }
 
 function sanitizeWindowKey(application, title) {
@@ -67,7 +38,15 @@ function sanitizeWindowKey(application, title) {
     app = 'Guake';
   }
 
-  return app;
+  return encode_utf8(app);
+}
+
+function encode_utf8(s) {
+  return unescape(encodeURIComponent(s));
+}
+
+function decode_utf8(s) {
+  return decodeURIComponent(escape(s));
 }
 
 // Custom code
