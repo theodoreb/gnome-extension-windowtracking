@@ -8,7 +8,7 @@ const config = {
   dbName: '.windowtraking.sqlite',
   dbDir: imports.gi.GLib.get_home_dir(),
   // Ignore events faster than 'threshold' ms.
-  threshold: 200,
+  threshold: 125,
 };
 
 const Mainloop = imports.mainloop;
