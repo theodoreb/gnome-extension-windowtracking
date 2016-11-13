@@ -9,6 +9,7 @@ const config = {
   dbDir: imports.gi.GLib.get_home_dir(),
   // Ignore events faster than 'threshold' ms.
   threshold: 125,
+  log: true,
 };
 
 function sanitize(rawData) {
@@ -49,12 +50,28 @@ const logData = (function (Gda, config) {
 
   let connection = null;
 
-
   function equals(a, b) {
     return a.type === b.type && a.key === b.key && a.value === b.value;
   }
 
+  function toggleLogging(value) {
+    if (/on\.timetrack\.dev/.test(value)) {
+      global.log('[windowTracking] Turning logging ON');
+      config.log = true;
+    }
+    if (/off\.timetrack\.dev/.test(value)) {
+      global.log('[windowTracking] Turning logging OFF');
+      config.log = false;
+    }
+  }
+
   function logData(rawData) {
+    toggleLogging(rawData.value);
+    if (!config.log) {
+      lastData = null;
+      lastTime = null;
+      return;
+    }
     connect();
 
     const time = new Date();
