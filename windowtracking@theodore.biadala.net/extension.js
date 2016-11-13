@@ -47,13 +47,6 @@ function debounce(func, wait, immediate) {
   };
 }
 
-
-/*
-const Convenience = imports.misc.extensionUtils.getCurrentExtension().imports.convenience;
-let settings = Convenience.getSettings();
-const Mainloop = imports.mainloop;
-*/
-
 function sanitize(rawData) {
   let data = rawData;
   if (data.type === 'window') {
@@ -84,7 +77,7 @@ const logData = (function (Gda, config) {
 
   let connection = null;
 
-  let logData = function _logData(rawData) {
+  function logData(rawData) {
     connect();
 
     // This is not a copy but it should be!
@@ -105,10 +98,6 @@ const logData = (function (Gda, config) {
     write.apply(this, builtData);
     lastTime = time;
   }
-
-  logData.init = function () {
-    connect();
-  };
 
   function buildData(rawData) {
     const keys = ['date', 'timezone', 'type', 'key', 'value', 'duration', 'origin'];
@@ -188,10 +177,9 @@ const tracking = (function (global, GnomeSession, log) {
 
   let titleCallbackID = 0;
 
-  //let presenceCallbackID = 0;
+  let windowTitleCallbackID = 0;
 
   function init() {
-    log.init();
     presence = GnomeSession.Presence();
     display = global.display;
   }
@@ -200,6 +188,7 @@ const tracking = (function (global, GnomeSession, log) {
     //presenceCallbackID = presence.connect('notify::status', changeStatus);
     presence.connectSignal('StatusChanged', changeStatus);
     windowCallbackID = display.connect('notify::focus-window', changeWindow);
+    windowTitleCallbackID = display.connect('notify::focus-window', changeTitle);
   }
 
   function disable() {
@@ -209,8 +198,10 @@ const tracking = (function (global, GnomeSession, log) {
     titleCallbackID = 0;
 
     display.disconnect(windowCallbackID);
+    display.disconnect(windowTitleCallbackID);
     //presence.disconnect(presenceCallbackID);
     windowCallbackID = 0;
+    windowTitleCallbackID = 0;
     //presenceCallbackID = 0;
   }
 
@@ -230,11 +221,21 @@ const tracking = (function (global, GnomeSession, log) {
     if (windowCallbackID) {
       display.disconnect(windowCallbackID);
     }
+    // Reset the window focus callback.
+    if (windowTitleCallbackID) {
+      display.disconnect(windowTitleCallbackID);
+    }
     windowCallbackID = display.connect('notify::focus-window', changeWindow);
+    windowTitleCallbackID = display.connect('notify::focus-window', changeTitle);
   }
 
-  function changeWindow() {
-    changeTitle();
+  /**
+   * Bind and clean-up the title callback.
+   *
+   * @param metaDisplay
+   * @param paramSpec
+   */
+  function changeWindow(metaDisplay, paramSpec) {
     if (activeWindow && titleCallbackID) {
       activeWindow.disconnect(titleCallbackID);
     }
@@ -244,10 +245,17 @@ const tracking = (function (global, GnomeSession, log) {
     }
   }
 
-  function changeTitle() {
-    const win = display.focus_window;
-    if (!win) { return; }
-
+  function changeTitle(metaDisplay) {
+    let win;
+    if (metaDisplay && ('get_wm_class' in metaDisplay)) {
+      win = metaDisplay;
+    }
+    else if (display.focus_window && ('get_wm_class' in display.focus_window)) {
+      win = display.focus_window;
+    }
+    else {
+      return;
+    }
     log({
       type: 'window',
       key: win.get_wm_class(),
