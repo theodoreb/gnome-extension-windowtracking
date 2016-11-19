@@ -236,7 +236,8 @@ const tracking = (function (global, GnomeSession, log) {
     if (activeWindow && titleCallbackID) {
       activeWindow.disconnect(titleCallbackID);
     }
-    if (activeWindow = metaDisplay) {
+    activeWindow = display.focus_window;
+    if (activeWindow) {
       titleCallbackID = activeWindow.connect('notify::title', changeTitle);
     }
   }
