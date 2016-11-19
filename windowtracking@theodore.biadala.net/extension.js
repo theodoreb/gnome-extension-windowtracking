@@ -80,7 +80,7 @@ const logData = (function (Gda, config) {
     // Don't log the same thing twice.
     if (lastData && equals(lastData, newData)) { return; }
     newData.date = time.toISOString();
-    newData.timezone = time.toString().match(/\(([\w]{3,4})\)/)[1] || 'CET';
+    newData.timezone = time.toTimeString().match(/\(([\w]{3,4})\)/)[1] || 'CET';
 
     if (lastData) {
       let diff = time - lastTime;
@@ -236,8 +236,7 @@ const tracking = (function (global, GnomeSession, log) {
     if (activeWindow && titleCallbackID) {
       activeWindow.disconnect(titleCallbackID);
     }
-    activeWindow = display.focus_window;
-    if (activeWindow) {
+    if (activeWindow = metaDisplay) {
       titleCallbackID = activeWindow.connect('notify::title', changeTitle);
     }
   }
