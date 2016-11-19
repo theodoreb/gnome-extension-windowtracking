@@ -80,7 +80,9 @@ const logData = (function (Gda, config) {
     // Don't log the same thing twice.
     if (lastData && equals(lastData, newData)) { return; }
     newData.date = time.toISOString();
-    newData.timezone = time.toTimeString().match(/\(([\w]{3,4})\)/)[1] || 'CET';
+    newData.day = time.toLocaleFormat('%Y-%m-%d');
+    newData.time = time.toTimeString().substr(0, 8);
+    newData.timezone = time.toTimeString().substr(9);
 
     if (lastData) {
       let diff = time - lastTime;
@@ -97,7 +99,7 @@ const logData = (function (Gda, config) {
   }
 
   function buildData(rawData) {
-    const keys = ['date', 'timezone', 'type', 'key', 'value', 'duration', 'origin'];
+    const keys = ['date', 'day', 'time', 'timezone', 'type', 'key', 'value', 'duration', 'origin'];
     const def = {
       type: '',
       key: '',
@@ -141,6 +143,8 @@ const logData = (function (Gda, config) {
     connection.execute_non_select_command(['CREATE TABLE log (',
       'id INTEGER PRIMARY KEY,',
       'date TEXT NOT NULL,',
+      'day TEXT NOT NULL,',
+      'time TEXT NOT NULL,',
       'timezone TEXT NOT NULL,',
       'type TEXT NOT NULL,',
       'key TEXT NOT NULL,',
@@ -148,7 +152,7 @@ const logData = (function (Gda, config) {
       'duration INTEGER NULL,',
       'origin TEXT NOT NULL',
       ')'].join('\n'));
-    connection.execute_non_select_command('CREATE INDEX date_timezone ON log(date, timezone)');
+    connection.execute_non_select_command('CREATE INDEX date_timezone ON log(date, day, time, timezone)');
     connection.execute_non_select_command('CREATE INDEX type_key_origin ON log(type, key, origin)');
     connection.execute_non_select_command('CREATE INDEX key_value ON log(key,value)');
     connection.execute_non_select_command('CREATE INDEX duration ON log(duration)');
