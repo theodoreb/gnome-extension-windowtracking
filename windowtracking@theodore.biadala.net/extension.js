@@ -24,6 +24,25 @@ function sanitize(rawData) {
 
 function sanitizeWindowTitle(application, title) {
 
+  var suffixes = {
+    'chromium-browser': ' – Chromium',
+    'Firefox': ' - Mozilla Firefox',
+    'jetbrains-phpstorm': ' - PhpStorm ',
+    'Smplayer': ' - SMPlayer',
+    'Thunderbird': ' - Mozilla Thunderbird'
+  };
+
+  // Remove application name from titles, already have that information.
+  if (application in suffixes) {
+    title = title.substr(0, title.indexOf(suffixes[application])).trim();
+  }
+
+  // Remove twitter and Facebook unread counters.
+  let socialRegEx = /^\([\d]+\)\s+(Twitter|Facebook)/i;
+  if (socialRegEx.test(title)) {
+    title = title.match(socialRegEx)[1];
+  }
+
   return title;
 }
 
