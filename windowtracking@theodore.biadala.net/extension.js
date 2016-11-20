@@ -38,7 +38,7 @@ function sanitizeWindowTitle(application, title) {
   }
 
   // Remove twitter and Facebook unread counters.
-  let socialRegEx = /^\([\d]+\)\s+(Twitter|Facebook)/i;
+  let socialRegEx = /^\([\d]+\)\s+(Twitter|NewsBlur|Facebook)/i;
   if (socialRegEx.test(title)) {
     title = title.match(socialRegEx)[1];
   }
@@ -98,6 +98,9 @@ const logData = (function (Gda, config) {
 
     // Don't log the same thing twice.
     if (lastData && equals(lastData, newData)) { return; }
+    // Don't log empty titles
+    if (newData.value === "" && lastData && lastData.key === newData.key) { return; }
+
     newData.date = time.toISOString();
     newData.day = time.toLocaleFormat('%Y-%m-%d');
     newData.time = time.toTimeString().substr(0, 8);
