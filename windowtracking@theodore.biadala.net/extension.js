@@ -38,7 +38,7 @@ function sanitizeWindowTitle(application, title) {
   }
 
   // Remove twitter and Facebook unread counters.
-  let socialRegEx = /^\([\d]+\)\s+(Twitter|NewsBlur|Facebook)/i;
+  let socialRegEx = /^\([\d|\/]+\)\s+(Twitter|NewsBlur|Facebook)/i;
   if (socialRegEx.test(title)) {
     title = title.match(socialRegEx)[1];
   }
